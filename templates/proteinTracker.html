@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="蛋白質記錄器 - 追蹤每日蛋白質攝取量">
+    <title>蛋白質記錄器 | Protein Tracker</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --primary: #6366f1;
+            --primary-gradient: linear-gradient(135deg, #818cf8, #6366f1);
+            --success: #10b981;
+            --success-gradient: linear-gradient(135deg, #34d399, #059669);
+            --danger: #f43f5e;
+            --danger-gradient: linear-gradient(135deg, #fb7185, #e11d48);
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+            overflow-x: hidden;
+        }
+
+        /* Background decorative blobs */
+        .blob {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: -1;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .blob-primary {
+            background: var(--primary);
+            top: 10%;
+            left: 10%;
+            animation: float 20s ease-in-out infinite alternate;
+        }
+
+        .blob-success {
+            background: var(--success);
+            bottom: 10%;
+            right: 10%;
+            animation: float 25s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, 30px) scale(1.1); }
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 580px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Back Navigation */
+        .back-nav {
+            margin-bottom: 1.5rem;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: var(--transition-smooth);
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .back-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(-3px);
+        }
+
+        /* Glassmorphism Cards */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 2rem;
+            transition: var(--transition-smooth);
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Header design */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        /* Progress Card Elements */
+        .progress-section {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        @media (max-width: 480px) {
+            .progress-section {
+                flex-direction: column;
+                text-align: center;
+                gap: 1.5rem;
+            }
+        }
+
+        .circle-progress-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .circle-svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 10;
+        }
+
+        .circle-fill {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;
+        }
+
+        .percentage-display {
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .percentage-display span {
+            font-size: 0.8rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: -2px;
+        }
+
+        .progress-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .goal-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .goal-header {
+                justify-content: center;
+            }
+        }
+
+        .goal-title {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .goal-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 0.2rem 0.6rem;
+            border-radius: 8px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .goal-value:hover {
+            background: rgba(99, 102, 241, 0.2);
+            transform: scale(1.05);
+        }
+
+        .current-total-title {
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-top: 0.25rem;
+        }
+
+        .current-total-value {
+            font-size: 3.2rem;
+            font-weight: 700;
+            line-height: 1.1;
+            background: linear-gradient(to right, #ffffff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-message {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            min-height: 1.4rem;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        @media (max-width: 480px) {
+            .status-message {
+                justify-content: center;
+            }
+        }
+
+        .status-message.completed {
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        /* Form Controls */
+        .form-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-title i {
+            color: var(--primary);
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.2rem;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .form-input::placeholder {
+            color: transparent;
+        }
+
+        /* Floating label design */
+        .form-label {
+            position: absolute;
+            left: 1.2rem;
+            top: 1rem;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            pointer-events: none;
+            transition: var(--transition-smooth);
+            transform-origin: left top;
+        }
+
+        .form-input:focus ~ .form-label,
+        .form-input:not(:placeholder-shown) ~ .form-label {
+            transform: translateY(-1.5rem) scale(0.8);
+            color: var(--primary);
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            border: none;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-primary {
+            flex-grow: 1;
+            padding: 1rem 1.5rem;
+            background: var(--primary-gradient);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* History Details */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .history-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .history-title i {
+            color: var(--primary);
+        }
+
+        .btn-clear {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .btn-clear:hover {
+            color: var(--danger);
+            background: rgba(244, 63, 94, 0.1);
+            border-color: rgba(244, 63, 94, 0.2);
+        }
+
+        .record-list {
+            list-style: none;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        /* Custom Scrollbar for list */
+        .record-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .record-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .record-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .record-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.20);
+        }
+
+        .record-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1.2rem;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            transition: var(--transition-smooth);
+        }
+
+        .record-item:hover {
+            background: rgba(15, 23, 42, 0.6);
+            border-color: rgba(255, 255, 255, 0.08);
+            transform: translateX(2px);
+        }
+
+        .record-item.removing {
+            animation: slideOut 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.9) translateY(-10px);
+                margin-bottom: 0;
+                padding-top: 0;
+                padding-bottom: 0;
+                height: 0;
+                border-top: none;
+                border-bottom: none;
+            }
+        }
+
+        .record-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .record-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            flex-shrink: 0;
+            font-size: 0.95rem;
+        }
+
+        .record-name-container {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .record-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .record-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 1px;
+        }
+
+        .record-amount-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+
+        .record-amount {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            padding: 0.2rem 0.5rem;
+            border-radius: 8px;
+        }
+
+        .btn-delete {
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+            background: rgba(244, 63, 94, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .empty-state i {
+            font-size: 2.2rem;
+            opacity: 0.3;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Custom dialog for target editing */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition-smooth);
+        }
+
+        .dialog-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .dialog-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.9);
+            transition: var(--transition-smooth);
+        }
+
+        .dialog-overlay.active .dialog-card {
+            transform: scale(1);
+        }
+
+        .dialog-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .dialog-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .btn-secondary {
+            padding: 0.65rem 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .btn-dialog-submit {
+            padding: 0.65rem 1.2rem;
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 600;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+
+        .btn-dialog-submit:hover {
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* History stats list styles */
+        .history-stats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .history-stat-item {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 14px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: var(--transition-smooth);
+        }
+
+        .history-stat-item:hover {
+            background: rgba(15, 23, 42, 0.6);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .history-stat-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+
+        .history-stat-date {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .history-stat-amount {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .history-stat-amount span {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .history-progress-bar-bg {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .history-progress-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            width: 0;
+            transition: width 0.8s ease;
+        }
+
+        .history-progress-bar-fill.normal {
+            background: var(--primary-gradient);
+        }
+
+        .history-progress-bar-fill.completed {
+            background: var(--success-gradient);
+        }
+    </style>
+</head>
+<body>
+    <!-- Decorative background elements -->
+    <div class="blob blob-primary"></div>
+    <div class="blob blob-success"></div>
+
+    <div class="app-container">
+        <!-- Back Navigation -->
+        <div class="back-nav">
+            <a href="../index.html" class="back-btn">
+                <i class="fa-solid fa-arrow-left"></i> 返回首頁
+            </a>
+        </div>
+
+        <!-- Header -->
+        <header>
+            <h1>蛋白質記錄器</h1>
+            <p>輕鬆記錄並掌控您每日的蛋白質攝取量</p>
+        </header>
+
+        <!-- Status & Progress Dashboard Card -->
+        <div class="card">
+            <div class="progress-section">
+                <!-- Circular Progress Ring -->
+                <div class="circle-progress-container">
+                    <svg class="circle-svg">
+                        <circle class="circle-bg" cx="75" cy="75" r="70"></circle>
+                        <circle class="circle-fill" id="circleProgress" cx="75" cy="75" r="70"></circle>
+                    </svg>
+                    <div class="percentage-display">
+                        <div id="percentageText">0%</div>
+                        <span>已達成</span>
+                    </div>
+                </div>
+
+                <!-- Text stats -->
+                <div class="progress-info">
+                    <div class="goal-header">
+                        <span class="goal-title">目標設定</span>
+                        <div class="goal-value" id="goalValBtn" onclick="openTargetDialog()">
+                            <span id="targetText">60</span>克 <i class="fa-solid fa-pen-to-square" style="font-size: 0.8rem;"></i>
+                        </div>
+                    </div>
+                    <div class="current-total-title">目前累計</div>
+                    <div class="current-total-value"><span id="total">0</span> <span style="font-size: 1.5rem; font-weight: 500;">克</span></div>
+                    <div class="status-message" id="statusMsg">
+                        <i class="fa-solid fa-dumbbell"></i> 距離今日目標還差 60 克
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form Card -->
+        <div class="card">
+            <div class="form-title">
+                <i class="fa-solid fa-circle-plus"></i> 新增攝取記錄
+            </div>
+            
+            <!-- Food Name Input -->
+            <div class="form-group">
+                <input type="text" id="foodName" class="form-input" placeholder=" " required autocomplete="off">
+                <label class="form-label" for="foodName">食物名稱 (例如：茶葉蛋、雞胸肉)</label>
+            </div>
+
+            <!-- Protein Amount Input -->
+            <div class="form-group">
+                <input type="number" id="proteinAmount" class="form-input" placeholder=" " min="0.1" step="0.1" required>
+                <label class="form-label" for="proteinAmount">蛋白質含量 (克)</label>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="btn-group">
+                <button onclick="addRecord()" class="btn-primary">
+                    <i class="fa-solid fa-check"></i> 記錄此餐
+                </button>
+            </div>
+        </div>
+
+        <!-- History/Logs Card -->
+        <div class="card">
+            <div class="history-header">
+                <div class="history-title">
+                    <i class="fa-solid fa-clock-rotate-left"></i> 今日記錄明細
+                </div>
+                <button onclick="clearAllRecords()" class="btn-clear" id="btnClear">
+                    <i class="fa-solid fa-trash-can"></i> 清除全部
+                </button>
+            </div>
+
+            <!-- Scrollable list of entries -->
+            <ul id="recordList" class="record-list">
+                <!-- Items dynamically injected here -->
+            </ul>
+        </div>
+
+        <!-- History Stats Card -->
+        <div class="card">
+            <div class="history-header" style="margin-bottom: 1.2rem;">
+                <div class="history-title">
+                    <i class="fa-solid fa-chart-simple"></i> 近期每日統計
+                </div>
+            </div>
+            <div id="historyStatsList" class="history-stats-list">
+                <!-- Historical summaries injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Target Dialog Modal -->
+    <div class="dialog-overlay" id="targetDialog">
+        <div class="dialog-card">
+            <div class="dialog-title">修改今日目標</div>
+            <div class="dialog-desc">設定您每日期望達成的蛋白質攝取量目標（克）。</div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="number" id="newTargetInput" class="form-input" placeholder=" " min="1" step="1" required>
+                <label class="form-label" for="newTargetInput">每日目標蛋白質 (克)</label>
+            </div>
+            
+            <div class="dialog-buttons">
+                <button onclick="closeTargetDialog()" class="btn-secondary">取消</button>
+                <button onclick="saveNewTarget()" class="btn-dialog-submit">確認儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script loading -->
+    <script src="../static/js/proteinTracker.js"></script>
+</body>
+</html>
